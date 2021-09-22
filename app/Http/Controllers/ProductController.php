@@ -39,9 +39,11 @@ class ProductController extends Controller
         }
         $products = $products->with(['variantPrices' => function ($query) use ($variant, $price_from, $price_to) {
             if ($variant) {
-                $query->where('product_variant_one', $variant)
-                    ->orWhere('product_variant_two', $variant)
-                    ->orWhere('product_variant_three', $variant);
+                $query = $query->where(function ($search) use ($variant) {
+                    $search->where('product_variant_one', $variant)
+                        ->orWhere('product_variant_two', $variant)
+                        ->orWhere('product_variant_three', $variant);
+                });
             }
             if ($price_from && $price_to) {
                 $query->whereBetween('price', [$price_from, $price_to]);
@@ -51,7 +53,7 @@ class ProductController extends Controller
                 $query->where('price', '<>', $price_to);
             }
         }]);
-        $products = $products->latest()->paginate(3);
+        $products = $products->paginate(3);
 
         $variants = ProductVariant::get()->unique('variant')->groupBy(function ($productVariant) {
             return Variant::find($productVariant->variant_id)->title;
