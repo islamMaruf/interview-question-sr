@@ -23,7 +23,11 @@ Route::get('/home', 'HomeController@index')->name('home');
 
 Route::middleware('auth')->group(function () {
     Route::resource('product-variant', 'VariantController');
-    Route::resource('product', 'ProductController');
+    Route::get('products', 'ProductController@index')->name('product.index');
+    Route::post('product', 'ProductController@store')->name('product.store');
+    Route::get('product/{product}', 'ProductController@edit')->name('product.edit');
+    Route::post('product/{product}', 'ProductController@update')->name('product.update');
+    Route::get('product', 'ProductController@create')->name('product.create');
     Route::resource('blog', 'BlogController');
     Route::resource('blog-category', 'BlogCategoryController');
 });

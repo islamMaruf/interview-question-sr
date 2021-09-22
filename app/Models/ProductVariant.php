@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ProductVariant extends Model
 {
+
     /**
      * The attributes that aren't mass assignable.
      *

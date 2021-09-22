@@ -152,7 +152,7 @@
                     v-for="(variant_price, index) in product_variant_prices"
                     :key="index"
                   >
-                    <td>{{ variant_price.title }}</td>
+                    <td>{{ variant_price.combination_variant }}</td>
                     <td>
                       <input
                         type="text"
@@ -250,7 +250,7 @@ export default {
 
       this.getCombn(tags).forEach((item) => {
         this.product_variant_prices.push({
-          title: item,
+          combination_variant: item,
           price: 0,
           stock: 0,
         });
@@ -284,7 +284,7 @@ export default {
       axios
         .post("/product", product)
         .then((response) => {
-          //   console.log(response.data);
+          window.location.href = "/products";
         })
         .catch(({ response }) => {
           console.log(response.data.errors);

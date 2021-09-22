@@ -102,7 +102,7 @@
                     of total {{$products->total()}} </p>
             </div>
             <div class="col-md-2">
-                {{ $products->links() }}
+                {{ $products->appends(Request::all())->links() }}
             </div>
         </div>
     </div>

@@ -23,6 +23,12 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Eloquent\Builder|Product whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Product whereUpdatedAt($value)
  * @mixin \Eloquent
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ProductVariant[] $productVariant
+ * @property-read int|null $product_variant_count
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ProductVariantPrice[] $variantPrices
+ * @property-read int|null $variant_prices_count
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Variant[] $variants
+ * @property-read int|null $variants_count
  */
 class Product extends Model
 {
@@ -36,5 +42,13 @@ class Product extends Model
     public function variantPrices()
     {
         return $this->hasMany(ProductVariantPrice::class);
+    }
+    public function productVariant()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+    public function variants()
+    {
+        return $this->belongsToMany(Variant::class, 'product_variants')->distinct();
     }
 }

@@ -152,7 +152,7 @@
                     v-for="(variant_price, index) in product_variant_prices"
                     :key="index"
                   >
-                    <td>{{ variant_price.title }}</td>
+                    <td>{{ variant_price.combination_variant }}</td>
                     <td>
                       <input
                         type="text"
@@ -176,8 +176,8 @@
       </div>
     </div>
 
-    <button @click="saveProduct" type="submit" class="btn btn-lg btn-primary">
-      Save
+    <button @click="updateProduct" type="submit" class="btn btn-lg btn-primary">
+      Update
     </button>
     <button type="button" class="btn btn-secondary btn-lg">Cancel</button>
   </section>
@@ -194,7 +194,15 @@ export default {
     InputTag,
   },
   props: {
+    product: {
+      type: Object,
+      required: true,
+    },
     variants: {
+      type: Array,
+      required: true,
+    },
+    productvariant: {
       type: Array,
       required: true,
     },
@@ -225,6 +233,13 @@ export default {
     };
   },
   methods: {
+    setValueToFrom() {
+      this.product_name = this.product.title;
+      this.product_sku = this.product.sku;
+      this.description = this.product.description;
+      this.product_variant = this.productvariant;
+      this.product_variant_prices = this.product.variant_prices;
+    },
     // it will push a new object into product variant
     newVariant() {
       let all_variants = this.variants.map((el) => el.id);
@@ -250,7 +265,7 @@ export default {
 
       this.getCombn(tags).forEach((item) => {
         this.product_variant_prices.push({
-          title: item,
+          combination_variant: item,
           price: 0,
           stock: 0,
         });
@@ -271,23 +286,24 @@ export default {
     },
 
     // store product into database
-    saveProduct() {
+    updateProduct() {
       let product = {
+        id: this.product.id,
         title: this.product_name,
         sku: this.product_sku,
         description: this.description,
         product_image: this.images,
         product_variant: this.product_variant,
         product_variant_prices: this.product_variant_prices,
+        _token: document.head.querySelector("[name=csrf-token]").content,
       };
 
       axios
-        .post("/product", product)
+        .post("/product/" + product.id, product)
         .then((response) => {
-          //   console.log(response.data);
+          window.location.href = "/products";
         })
         .catch(({ response }) => {
-          console.log(response.data.errors);
           this.errors = response.data.errors;
         });
     },
@@ -297,6 +313,9 @@ export default {
   },
   mounted() {
     console.log("Component mounted.");
+  },
+  created() {
+    this.setValueToFrom();
   },
 };
 </script>

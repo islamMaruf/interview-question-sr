@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ProductVariantPrice;
@@ -22,7 +23,7 @@ class ProductController extends Controller
     public function index()
     {
 
-        $products = Product::with('variantPrices');
+        $products = Product::query();
 
         $title = request('title');
         $variant = request('variant');
@@ -36,7 +37,12 @@ class ProductController extends Controller
         if ($date) {
             $products = $products->where('created_at', $date);
         }
-        $products = $products->whereHas('variantPrices', function (Builder $query) use ($price_to, $price_from) {
+        $products = $products->with(['variantPrices' => function ($query) use ($variant, $price_from, $price_to) {
+            if ($variant) {
+                $query->where('product_variant_one', $variant)
+                    ->orWhere('product_variant_two', $variant)
+                    ->orWhere('product_variant_three', $variant);
+            }
             if ($price_from && $price_to) {
                 $query->whereBetween('price', [$price_from, $price_to]);
             } elseif ($price_from) {
@@ -44,15 +50,9 @@ class ProductController extends Controller
             } else {
                 $query->where('price', '<>', $price_to);
             }
-        });
-        $products->whereHas('variantPrices', function (Builder $query) use ($variant) {
-            if ($variant) {
-                return $query->where('product_variant_one', $variant)
-                    ->orWhere('product_variant_two', $variant)
-                    ->orWhere('product_variant_three', $variant);
-            }
-        });
-        $products = $products->paginate(2);
+        }]);
+        $products = $products->latest()->paginate(3);
+
         $variants = ProductVariant::get()->unique('variant')->groupBy(function ($productVariant) {
             return Variant::find($productVariant->variant_id)->title;
         });
@@ -97,7 +97,7 @@ class ProductController extends Controller
                 }
             }
             foreach ($request->product_variant_prices as $product_variant_price) {
-                $title = explode("/", $product_variant_price['title']);
+                $title = explode("/", $product_variant_price['combination_variant']);
                 $product_variant_one = isset($title[0]) && $title[0] ? ProductVariant::where('variant', $title[0])->first()->id : null;
                 $product_variant_two = isset($title[1]) && $title[1] ? ProductVariant::where('variant', $title[1])->first()->id : null;
                 $product_variant_three = isset($title[2]) && $title[2] ? ProductVariant::where('variant', $title[2])->first()->id : null;
@@ -136,8 +136,14 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        $variants = Variant::all();
-        return view('products.edit', compact('variants'));
+        $variants = Variant::whereHas('productVariant')->with(['productVariant' => function ($query) use ($product) {
+            $query->where('product_id', $product->id);
+        }])->get();
+
+        $product = $product->load(['productVariant', 'variantPrices']);
+        $productVariant = $this->getProductVariant($product);
+        $variantPrice = $product->variantPrices;
+        return view('products.edit', compact('variants', 'product', 'variantPrice', 'productVariant'));
     }
 
     /**
@@ -147,9 +153,60 @@ class ProductController extends Controller
      * @param \App\Models\Product $product
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        //
+        try {
+            // DB::beginTransaction()
+            $product->update([
+                'title' => $request->title,
+                'sku' => $request->sku,
+                'description' => $request->description
+            ]);
+            foreach ($request->product_variant as $variant) {
+                $variant_id = $variant['option'];
+                foreach ($variant['tags'] as $tag) {
+                    // where('variant_id', $variant_id)->where('product_id', $product->id)->
+                    ProductVariant::updateOrCreate(
+                        [
+                            'variant_id' => $variant_id,
+                            'product_id' => $product->id,
+
+                        ],
+                        [
+                            'variant_id' => $variant_id,
+                            'product_id' => $product->id,
+                            'variant' => $tag
+                        ]
+                    );
+                }
+            }
+            foreach ($request->product_variant_prices as $product_variant_price) {
+                $title = explode("/", $product_variant_price['combination_variant']);
+                $product_variant_one = isset($title[0]) && $title[0] ? ProductVariant::where('variant', $title[0])->first()->id ?? null : null;
+                $product_variant_two = isset($title[1]) && $title[1] ? ProductVariant::where('variant', $title[1])->first()->id ?? null : null;
+                $product_variant_three = isset($title[2]) && $title[2] ? ProductVariant::where('variant', $title[2])->first()->id ?? null : null;
+                ProductVariantPrice::updateOrCreate(
+                    [
+
+                        'product_id' => $product->id
+                    ],
+                    [
+                        'product_variant_one' => $product_variant_one,
+                        'product_variant_two' => $product_variant_two,
+                        'product_variant_three' => $product_variant_three,
+                        'product_id' => $product->id,
+                        'price' => $product_variant_price['price'],
+                        'stock' => $product_variant_price['stock'],
+
+                    ]
+                );
+            }
+            // DB::commit();
+        } catch (Exception $exception) {
+            dd($exception);
+            // DB::rollBack();
+        }
+        return redirect()->route('product.index');
     }
 
     /**
@@ -161,5 +218,25 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         //
+    }
+
+    private function getProductVariant($product)
+    {
+        $product_variant = collect($product->productVariant)->groupBy('variant_id');
+        $store_array = [];
+        foreach ($product_variant as $key => $variant) {
+            $store[$key] = [];
+            foreach ($variant as $v) {
+                array_push($store[$key], $v->variant);
+            }
+            array_push($store_array, $store);
+        }
+        $product_variant = collect($store_array)->last();
+        $temp = [];
+        foreach ($product_variant as  $key => $value) {
+            $temp[$key]['option'] = $key;
+            $temp[$key]['tags'] = $value;
+        }
+        return collect($temp)->values();
     }
 }

@@ -29,6 +29,11 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Eloquent\Builder|ProductVariantPrice whereStock($value)
  * @method static \Illuminate\Database\Eloquent\Builder|ProductVariantPrice whereUpdatedAt($value)
  * @mixin \Eloquent
+ * @property-read mixed $combination_number
+ * @property-read mixed $combination_variant
+ * @property-read \App\Models\ProductVariant|null $variantOne
+ * @property-read \App\Models\ProductVariant|null $variantThree
+ * @property-read \App\Models\ProductVariant|null $variantTwo
  */
 class ProductVariantPrice extends Model
 {

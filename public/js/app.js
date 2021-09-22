@@ -2445,7 +2445,7 @@ __webpack_require__.r(__webpack_exports__);
       });
       this.getCombn(tags).forEach(function (item) {
         _this.product_variant_prices.push({
-          title: item,
+          combination_variant: item,
           price: 0,
           stock: 0
         });
@@ -2477,7 +2477,8 @@ __webpack_require__.r(__webpack_exports__);
         product_variant: this.product_variant,
         product_variant_prices: this.product_variant_prices
       };
-      axios.post("/product", product).then(function (response) {//   console.log(response.data);
+      axios.post("/product", product).then(function (response) {
+        window.location.href = "/products";
       })["catch"](function (_ref) {
         var response = _ref.response;
         console.log(response.data.errors);
@@ -2704,7 +2705,15 @@ __webpack_require__.r(__webpack_exports__);
     InputTag: vue_input_tag__WEBPACK_IMPORTED_MODULE_2___default.a
   },
   props: {
+    product: {
+      type: Object,
+      required: true
+    },
     variants: {
+      type: Array,
+      required: true
+    },
+    productvariant: {
       type: Array,
       required: true
     }
@@ -2732,6 +2741,13 @@ __webpack_require__.r(__webpack_exports__);
     };
   },
   methods: {
+    setValueToFrom: function setValueToFrom() {
+      this.product_name = this.product.title;
+      this.product_sku = this.product.sku;
+      this.description = this.product.description;
+      this.product_variant = this.productvariant;
+      this.product_variant_prices = this.product.variant_prices;
+    },
     // it will push a new object into product variant
     newVariant: function newVariant() {
       var all_variants = this.variants.map(function (el) {
@@ -2762,7 +2778,7 @@ __webpack_require__.r(__webpack_exports__);
       });
       this.getCombn(tags).forEach(function (item) {
         _this.product_variant_prices.push({
-          title: item,
+          combination_variant: item,
           price: 0,
           stock: 0
         });
@@ -2783,21 +2799,23 @@ __webpack_require__.r(__webpack_exports__);
       return ans;
     },
     // store product into database
-    saveProduct: function saveProduct() {
+    updateProduct: function updateProduct() {
       var _this2 = this;
 
       var product = {
+        id: this.product.id,
         title: this.product_name,
         sku: this.product_sku,
         description: this.description,
         product_image: this.images,
         product_variant: this.product_variant,
-        product_variant_prices: this.product_variant_prices
+        product_variant_prices: this.product_variant_prices,
+        _token: document.head.querySelector("[name=csrf-token]").content
       };
-      axios.post("/product", product).then(function (response) {//   console.log(response.data);
+      axios.post("/product/" + product.id, product).then(function (response) {
+        window.location.href = "/products";
       })["catch"](function (_ref) {
         var response = _ref.response;
-        console.log(response.data.errors);
         _this2.errors = response.data.errors;
       });
     },
@@ -2807,6 +2825,9 @@ __webpack_require__.r(__webpack_exports__);
   },
   mounted: function mounted() {
     console.log("Component mounted.");
+  },
+  created: function created() {
+    this.setValueToFrom();
   }
 });
 
@@ -51496,7 +51517,9 @@ var render = function() {
                     index
                   ) {
                     return _c("tr", { key: index }, [
-                      _c("td", [_vm._v(_vm._s(variant_price.title))]),
+                      _c("td", [
+                        _vm._v(_vm._s(variant_price.combination_variant))
+                      ]),
                       _vm._v(" "),
                       _c("td", [
                         _c("input", {
@@ -51908,7 +51931,9 @@ var render = function() {
                     index
                   ) {
                     return _c("tr", { key: index }, [
-                      _c("td", [_vm._v(_vm._s(variant_price.title))]),
+                      _c("td", [
+                        _vm._v(_vm._s(variant_price.combination_variant))
+                      ]),
                       _vm._v(" "),
                       _c("td", [
                         _c("input", {
@@ -51981,9 +52006,9 @@ var render = function() {
       {
         staticClass: "btn btn-lg btn-primary",
         attrs: { type: "submit" },
-        on: { click: _vm.saveProduct }
+        on: { click: _vm.updateProduct }
       },
-      [_vm._v("\n    Save\n  ")]
+      [_vm._v("\n    Update\n  ")]
     ),
     _vm._v(" "),
     _c(
